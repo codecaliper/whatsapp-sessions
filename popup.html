@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sessions for WhatsApp</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="header">
+        <div>
+          <p class="eyebrow">One Chrome profile · many accounts</p>
+          <h1>WhatsApp sessions</h1>
+        </div>
+        <button class="ghost" id="open-all" type="button">Open all</button>
+      </header>
+
+      <ul class="sessions" id="sessions" aria-live="polite"></ul>
+      <p class="empty" id="empty" hidden>No sessions yet. Add one, then scan its QR code with the phone for that account.</p>
+
+      <form class="add" id="add">
+        <input id="add-name" name="name" type="text" maxlength="32" placeholder="Session name, e.g. Work" autocomplete="off" />
+        <div class="swatches" id="add-colors" role="radiogroup" aria-label="Colour"></div>
+        <button class="primary" type="submit">Add</button>
+      </form>
+
+      <section class="settings" aria-label="Settings">
+        <label class="toggle">
+          <input id="group-tabs" type="checkbox" />
+          <span>
+            <strong>Group session tabs</strong>
+            <small>Keep session tabs together in a “WhatsApp” tab group</small>
+          </span>
+        </label>
+      </section>
+
+      <footer class="footer">
+        Each session keeps its own login in this browser. Plain web.whatsapp.com tabs stay separate too.
+      </footer>
+    </main>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
