@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Sessions for WhatsApp",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Run several WhatsApp Web accounts side by side in one Chrome profile. Not affiliated with WhatsApp or Meta.",
   "icons": {
     "16": "icons/icon16.png",

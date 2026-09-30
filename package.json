@@ -1,6 +1,6 @@
 {
   "name": "whatsapp-sessions",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "type": "module",
   "description": "Chrome extension: run several WhatsApp Web accounts side by side in one Chrome profile",
