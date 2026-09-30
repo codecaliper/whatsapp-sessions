@@ -24,9 +24,11 @@ for (const entry of log.split("\x1e")) {
   if (!sha || HIDDEN.test(subject)) continue;
   const match = /^(\w+)(?:\(([^)]+)\))?(!)?:\s*(.+)$/.exec(subject);
   const type = match?.[1].toLowerCase();
-  const text = match ? `${match[2] ? `**${match[2]}:** ` : ""}${match[4]}` : subject;
   const breaking = Boolean(match?.[3]) || /^BREAKING[ -]CHANGE:/m.test(body) || /^BREAKING[ -]CHANGE:/.test(subject);
   const key = breaking ? "breaking" : ["feat", "fix", "perf"].includes(type) ? type : "other";
+  // Maintenance mixes types, so say which one each entry is.
+  const label = [key === "other" ? type : null, match?.[2]].filter(Boolean).join(" · ");
+  const text = match ? `${label ? `**${label}:** ` : ""}${match[4]}` : subject;
   grouped[key].push(`- ${text} (${sha})`);
 }
 
