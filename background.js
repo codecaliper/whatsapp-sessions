@@ -129,25 +129,28 @@ async function openSession(id) {
 }
 
 // Runs in the isolated world of a WhatsApp-origin page, where storage APIs are unpatched.
+// Returns whatever is still left, so the caller can try again.
 async function wipeStorage(prefix) {
+  // A delete stays "blocked" until the closed tab's connections go away, which can take a
+  // moment on a slow machine; wait for it, but not forever.
   const settle = (request) => new Promise((resolve) => {
-    request.onsuccess = request.onerror = request.onblocked = () => resolve();
+    const timer = setTimeout(resolve, 5000);
+    request.onsuccess = request.onerror = () => { clearTimeout(timer); resolve(); };
   });
-  for (const { name } of await indexedDB.databases()) {
-    if (name?.startsWith(prefix)) await settle(indexedDB.deleteDatabase(name));
-  }
-  for (let i = localStorage.length - 1; i >= 0; i -= 1) {
-    const key = localStorage.key(i);
-    if (key?.startsWith(prefix)) localStorage.removeItem(key);
-  }
-  for (const name of await caches.keys()) {
-    if (name.startsWith(prefix)) await caches.delete(name);
-  }
   const bucketPrefix = prefix.replace(/:/g, "-");
-  for (const name of navigator.storageBuckets ? await navigator.storageBuckets.keys() : []) {
-    if (name.startsWith(bucketPrefix)) await navigator.storageBuckets.delete(name);
-  }
-  return true;
+  const leftovers = async () => ({
+    databases: (await indexedDB.databases()).map(({ name }) => name).filter((name) => name?.startsWith(prefix)),
+    keys: Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i)).filter((key) => key?.startsWith(prefix)),
+    caches: (await caches.keys()).filter((name) => name.startsWith(prefix)),
+    buckets: navigator.storageBuckets ? (await navigator.storageBuckets.keys()).filter((name) => name.startsWith(bucketPrefix)) : [],
+  });
+
+  const found = await leftovers();
+  await Promise.all(found.databases.map((name) => settle(indexedDB.deleteDatabase(name))));
+  for (const key of found.keys) localStorage.removeItem(key);
+  for (const name of found.caches) await caches.delete(name);
+  for (const name of found.buckets) await navigator.storageBuckets.delete(name);
+  return leftovers();
 }
 
 async function waitForLoad(tabId, timeoutMs = 15000) {
@@ -168,7 +171,13 @@ async function wipeSession(id) {
   try {
     const tabId = existing?.id ?? helper.id;
     if (helper) await waitForLoad(tabId);
-    await chrome.scripting.executeScript({ target: { tabId }, func: wipeStorage, args: [storagePrefix(id)] });
+    // A closing tab can still flush a last write or hold a database open, so check and retry.
+    for (let attempt = 1; ; attempt += 1) {
+      const [{ result: left }] = await chrome.scripting.executeScript({ target: { tabId }, func: wipeStorage, args: [storagePrefix(id)] });
+      if (Object.values(left).every((names) => names.length === 0)) return;
+      if (attempt === 5) throw new Error(`Couldn't delete all of the session's data: ${JSON.stringify(left)}`);
+      await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+    }
   } finally {
     if (helper) await chrome.tabs.remove(helper.id).catch(() => {});
   }

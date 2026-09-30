@@ -30,7 +30,8 @@ const SERVICE_WORKER_DBS = new Set(["sw", "wawc"]);
 
 const browser = await puppeteer.launch({
   headless: !process.env.HEADFUL,
-  executablePath: process.env.CHROME_PATH || puppeteer.executablePath(),
+  // Puppeteer 25 returns a promise here; awaiting works for both.
+  executablePath: process.env.CHROME_PATH || await puppeteer.executablePath(),
   userDataDir: path.join(work, "profile"),
   ignoreDefaultArgs: ["--disable-extensions"],
   args: [
@@ -211,13 +212,29 @@ try {
   const personalRow = `.session[data-id="${personalId}"]`;
   await popup.click(`${personalRow} button[title=Edit]`);
   await popup.click(`${personalRow} .danger`);
+  const removed = popup.evaluate(() => new Promise((resolve) => {
+    // Hear the popup's own remove request finish, including any error from the data wipe.
+    const send = chrome.runtime.sendMessage.bind(chrome.runtime);
+    chrome.runtime.sendMessage = (message) => {
+      const reply = send(message);
+      if (message.type === "wams-remove") reply.then(resolve, (error) => resolve({ ok: false, error: String(error) }));
+      return reply;
+    };
+  }));
   await popup.click(`${personalRow} .danger`);
   await waitFor(async () => personalTab.isClosed(), "Personal tab to close", 10000);
   await popup.waitForFunction(() => document.querySelectorAll(".session").length === 1);
-  await waitFor(async () => {
-    const left = await rawStorage(plainTab);
-    return left.dbs.every((name) => !name.startsWith(`wams:${personalId}:`)) && left.local.every((key) => !key.startsWith(`wams:${personalId}:`)) && left;
-  }, "Personal data to be deleted", 20000);
+  const removal = await removed;
+  assert.equal(removal?.ok, true, `removal reported: ${JSON.stringify(removal)}`);
+  const personalLeft = async () => {
+    const all = await rawStorage(plainTab);
+    return [...all.dbs, ...all.local, ...all.caches].filter((name) => name.startsWith(`wams:${personalId}:`));
+  };
+  try {
+    await waitFor(async () => (await personalLeft()).length === 0, "Personal data to be deleted", 20000);
+  } catch (error) {
+    throw new Error(`${error.message}; still there: ${(await personalLeft()).join(", ")}`);
+  }
   const remaining = await rawStorage(plainTab);
   assert.ok(remaining.dbs.some((name) => name.startsWith(`wams:${workId}:`)), "other sessions keep their data");
 
