@@ -281,5 +281,17 @@ chrome.tabs.onRemoved.addListener((tabId) => serial(() => forgetTab(tabId)));
 chrome.tabs.onUpdated.addListener((tabId, change) => {
   if (change.url && !change.url.startsWith(WHATSAPP_URL)) serial(() => forgetTab(tabId));
 });
+// Reloading or updating the extension orphans the helper in open WhatsApp tabs and clears
+// chrome.storage.session, so give those tabs a fresh helper and they register again. The storage
+// patch in the page's main world keeps working meanwhile.
+async function reconnectOpenTabs() {
+  for (const tab of await chrome.tabs.query({ url: `${WHATSAPP_URL}*` })) {
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["src/bridge.js"] }).catch(() => {});
+  }
+}
+
 chrome.runtime.onStartup.addListener(() => serial(updateBadge));
-chrome.runtime.onInstalled.addListener(() => serial(updateBadge));
+chrome.runtime.onInstalled.addListener(() => {
+  serial(updateBadge);
+  reconnectOpenTabs();
+});
