@@ -1,0 +1,13 @@
+{
+  "name": "whatsapp-sessions-e2e",
+  "private": true,
+  "type": "module",
+  "description": "End-to-end tests for Sessions for WhatsApp against the live web.whatsapp.com login page",
+  "scripts": {
+    "test": "node ../sessions.test.mjs && node run.mjs",
+    "e2e": "node run.mjs"
+  },
+  "devDependencies": {
+    "puppeteer": "^24.0.0"
+  }
+}
