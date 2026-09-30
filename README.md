@@ -1,7 +1,7 @@
 # Sessions for WhatsApp
 
-[![Release](https://img.shields.io/github/v/release/codecaliper/whatsapp-sessions)](https://github.com/codecaliper/whatsapp-sessions/releases/latest)
-[![CI](https://github.com/codecaliper/whatsapp-sessions/actions/workflows/ci.yml/badge.svg)](https://github.com/codecaliper/whatsapp-sessions/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/codecaliper/whatsapp-sessions?sort=semver&display_name=tag)](https://github.com/codecaliper/whatsapp-sessions/releases/latest)
+[![CI](https://github.com/codecaliper/whatsapp-sessions/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/codecaliper/whatsapp-sessions/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 > **Unofficial.** This project is not affiliated with, endorsed by, or sponsored by WhatsApp LLC or Meta Platforms, Inc. "WhatsApp" is a trademark of WhatsApp LLC and is used here only to describe what the extension works with.
