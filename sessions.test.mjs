@@ -255,3 +255,59 @@ assert.throws(() => vm.runInContext(isolateSource, vm.createContext(badScope), {
 assert.deepEqual(badScope.imported, []);
 
 console.log("sessions.test.mjs: all tests passed");
+
+// --- bridge.js: tab helper, including after the extension is reloaded ---------------------------
+const bridgeSource = readFileSync(new URL("./src/bridge.js", import.meta.url), "utf8");
+
+async function runBridge({ runtime, title = "WhatsApp", hash = "#wams=abc123" }) {
+  const observers = [];
+  const scope = {
+    location: { hash, replace() {} },
+    sessionStorage: { getItem: () => null, removeItem() {} },
+    document: { title, head: {}, documentElement: {}, querySelector: () => ({}) },
+    MutationObserver: class {
+      constructor(callback) { this.callback = callback; this.active = true; observers.push(this); }
+      observe() {}
+      disconnect() { this.active = false; }
+    },
+    chrome: { runtime },
+  };
+  scope.globalThis = scope;
+  vm.runInNewContext(bridgeSource, scope);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  return { scope, observers, mutate: () => observers.forEach((observer) => observer.active && observer.callback([])) };
+}
+
+const sent = [];
+const liveRuntime = {
+  id: "ext",
+  onMessage: { addListener() {} },
+  sendMessage: async (message) => {
+    sent.push(message);
+    return message.type === "wams-hello" ? { session: { id: "abc123", name: "Work" } } : { ok: true };
+  },
+};
+const live = await runBridge({ runtime: liveRuntime, title: "(2) WhatsApp" });
+assert.equal(live.scope.document.title, "Work · (2) WhatsApp", "the tab title gets the session label");
+assert.deepEqual(sent.map((message) => message.type), ["wams-hello", "wams-unread"]);
+assert.equal(sent[1].unread, 2);
+
+// The extension is reloaded: the old copy loses chrome.runtime.id and sendMessage throws.
+delete liveRuntime.id;
+liveRuntime.sendMessage = () => { throw new Error("Extension context invalidated."); };
+live.scope.document.title = "(5) WhatsApp";
+assert.doesNotThrow(() => live.mutate(), "an orphaned helper doesn't throw");
+assert.equal(live.observers[0].active, false, "an orphaned helper stops watching the title");
+
+const orphan = await runBridge({
+  runtime: { onMessage: { addListener() {} }, sendMessage: () => { throw new Error("Extension context invalidated."); } },
+});
+assert.equal(orphan.scope.document.title, "WhatsApp", "a helper that starts orphaned does nothing");
+
+let helloCount = 0;
+const again = { id: "ext", onMessage: { addListener() {} }, sendMessage: async () => { helloCount += 1; return {}; } };
+const first = await runBridge({ runtime: again });
+vm.runInNewContext(bridgeSource, first.scope);
+assert.equal(helloCount, 1, "injecting the helper twice into the same world runs it once");
+
+console.log("bridge.js: all tests passed");

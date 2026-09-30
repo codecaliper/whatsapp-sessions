@@ -238,7 +238,7 @@ try {
   const remaining = await rawStorage(plainTab);
   assert.ok(remaining.dbs.some((name) => name.startsWith(`wams:${workId}:`)), "other sessions keep their data");
 
-  const ours = pageErrors.filter((message) => /Illegal invocation|wams|__wamsInstalled|isolate/i.test(message));
+  const ours = pageErrors.filter((message) => /Illegal invocation|Extension context invalidated|wams|__wamsInstalled|isolate|bridge/i.test(message));
   if (pageErrors.length) console.log(`  page errors (${pageErrors.length}):\n   ${pageErrors.slice(0, 8).join("\n   ")}`);
   assert.deepEqual(ours, [], "no errors caused by the isolation patch");
 
