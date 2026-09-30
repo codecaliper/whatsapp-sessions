@@ -1,0 +1,21 @@
+{
+  "name": "whatsapp-sessions",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "description": "Chrome extension: run several WhatsApp Web accounts side by side in one Chrome profile",
+  "license": "MIT",
+  "repository": "github:codecaliper/whatsapp-sessions",
+  "scripts": {
+    "test": "node sessions.test.mjs",
+    "check": "node tools/check.mjs",
+    "e2e": "cd e2e && node run.mjs",
+    "package": "node tools/package.mjs",
+    "icons": "node tools/make-icons.mjs",
+    "release:version": "node tools/set-version.mjs",
+    "hooks": "git config core.hooksPath .githooks"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

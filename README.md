@@ -1,5 +1,7 @@
 # Sessions for WhatsApp
 
+[![Release](https://img.shields.io/github/v/release/codecaliper/whatsapp-sessions)](https://github.com/codecaliper/whatsapp-sessions/releases/latest)
+[![CI](https://github.com/codecaliper/whatsapp-sessions/actions/workflows/ci.yml/badge.svg)](https://github.com/codecaliper/whatsapp-sessions/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 > **Unofficial.** This project is not affiliated with, endorsed by, or sponsored by WhatsApp LLC or Meta Platforms, Inc. "WhatsApp" is a trademark of WhatsApp LLC and is used here only to describe what the extension works with.
@@ -10,9 +12,9 @@ It runs only in your browser. There's no server and no account, and nothing is s
 
 ## Load it in Chrome
 
-1. Download this repository (**Code → Download ZIP** and unzip it, or `git clone https://github.com/codecaliper/whatsapp-sessions.git`).
+1. Download `whatsapp-sessions-<version>.zip` from the [latest release](https://github.com/codecaliper/whatsapp-sessions/releases/latest) and unzip it. You can also clone this repository.
 2. Open `chrome://extensions` and turn on **Developer mode**.
-3. Click **Load unpacked** and select the `whatsapp-sessions` folder.
+3. Click **Load unpacked** and select the unzipped `whatsapp-sessions` folder.
 4. Click the extension icon (or press **Alt+Shift+W**), type a name such as "Work", pick a colour and press **Add**.
 5. Press **Open**. A WhatsApp tab opens, titled `Work · WhatsApp`. Scan its QR code with the phone for that account.
 6. Repeat for each account. Each session stays logged in across reloads and browser restarts, just like normal WhatsApp Web.
@@ -60,8 +62,10 @@ In plain WhatsApp tabs, nothing is renamed. `wams:` data is hidden from them, so
 ## Tests
 
 ```bash
-node sessions.test.mjs          # session list helpers, and the isolation patch against fake browser APIs
+npm run check                  # manifest references, syntax and imports
+npm test                       # session list helpers, and the isolation patch against fake browser APIs
 cd e2e && npm install && npm run e2e   # live check against web.whatsapp.com (HEADFUL=1 to watch)
+npm run package                # builds dist/whatsapp-sessions-<version>.zip
 ```
 
 The end-to-end test loads the extension into Chrome for Testing and runs these checks against the real WhatsApp login page. It doesn't need an account or a phone:
@@ -75,7 +79,26 @@ The end-to-end test loads the extension into Chrome for Testing and runs these c
 - Renaming relabels the tab.
 - Removing a session deletes its data.
 
-Regenerate the toolbar icons with `node tools/make-icons.mjs`.
+Regenerate the toolbar icons with `npm run icons`.
+
+## Releases
+
+Every push to `main` publishes a [GitHub release](https://github.com/codecaliper/whatsapp-sessions/releases), done by `.github/workflows/release.yml`. The version comes from the [Conventional Commits](https://www.conventionalcommits.org/) since the last tag:
+
+| Commits since the last release | Version bump |
+| --- | --- |
+| `feat!: …`, or a `BREAKING CHANGE:` footer | major (`1.4.2` → `2.0.0`) |
+| `feat: …` | minor (`1.4.2` → `1.5.0`) |
+| anything else (`fix:`, `docs:`, `chore:`, `ci:`, …) | patch (`1.4.2` → `1.4.3`) |
+
+The workflow then does the following:
+
+1. Runs the checks and unit tests.
+2. Commits the new version to `manifest.json` and `package.json` as `chore(release): vX.Y.Z`.
+3. Tags that commit.
+4. Publishes a release with grouped notes and the extension zip.
+
+To pick the version yourself, run the **Release** workflow by hand with a version. `.github/workflows/ci.yml` runs the checks, unit tests and live end-to-end test on every pull request and push.
 
 ## Files
 
@@ -85,6 +108,8 @@ Regenerate the toolbar icons with `node tools/make-icons.mjs`.
 - `src/sessions.js`: session list helpers shared by the popup, the service worker and the tests
 - `background.js`: tab tracking, open/focus, tab groups, badge, and data removal
 - `popup.html`, `popup.css`, `popup.js`: the session list
+- `tools/`: static checks (`check.mjs`), release zip (`package.mjs`), version bump (`set-version.mjs`), release notes (`release-notes.mjs`), icons
+- `.github/`: CI and release workflows, the commit message check, Dependabot
 
 ## Use at your own risk
 
@@ -96,7 +121,11 @@ Everything stays in your browser. The extension has no server, analytics or trac
 
 ## Contributing
 
-Issues and pull requests are welcome. Please run `node sessions.test.mjs`, and if you changed `src/isolate.js`, run the end-to-end test too.
+Issues and pull requests are welcome. Before you open one:
+
+1. Run `npm run check && npm test`.
+2. If you changed `src/isolate.js`, run the end-to-end test too.
+3. Use [Conventional Commits](https://www.conventionalcommits.org/) (`feat: …`, `fix: …`, `docs: …`). CI checks this, and releases depend on it. Run `npm run hooks` once to check your messages locally as you commit.
 
 ## License
 

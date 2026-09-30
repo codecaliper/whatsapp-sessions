@@ -10,13 +10,14 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import puppeteer from "puppeteer";
+import { RUNTIME_FILES } from "../tools/runtime-files.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const work = fs.mkdtempSync(path.join(os.tmpdir(), "wams-e2e-"));
 
 // Load a copy of just the runtime files, so e2e/node_modules never ends up in the extension.
 const EXTENSION = path.join(work, "extension");
-for (const entry of ["manifest.json", "background.js", "popup.html", "popup.css", "popup.js", "src", "icons"]) {
+for (const entry of RUNTIME_FILES) {
   fs.cpSync(path.resolve(here, "..", entry), path.join(EXTENSION, entry), { recursive: true });
 }
 
@@ -37,6 +38,8 @@ const browser = await puppeteer.launch({
     `--load-extension=${EXTENSION}`,
     `--user-agent=${USER_AGENT}`,
     "--window-size=1280,900",
+    // GitHub's Ubuntu runners don't allow Chrome's user-namespace sandbox.
+    ...(process.env.CI ? ["--no-sandbox"] : []),
   ],
 });
 
