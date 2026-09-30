@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Checks and unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Conventional Commits
+        if: github.event_name == 'pull_request'
+        run: python3 .github/scripts/validate-conventional-commits.py --base "${{ github.event.pull_request.base.sha }}" --head "${{ github.event.pull_request.head.sha }}"
+
+      - name: Static checks
+        run: npm run check
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Package
+        run: npm run package
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: whatsapp-sessions-extension
+          path: dist/*.zip
+          if-no-files-found: error
+
+  e2e:
+    name: End-to-end (live web.whatsapp.com)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Talks to the real WhatsApp site, which can be slow or block CI addresses, so it reports
+    # problems without blocking merges or releases.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: Install Chrome for Testing
+        run: npm ci
+        working-directory: e2e
+
+      - name: End-to-end tests
+        run: npm run e2e
