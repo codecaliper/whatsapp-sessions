@@ -8,6 +8,6 @@
     "e2e": "node run.mjs"
   },
   "devDependencies": {
-    "puppeteer": "^25.13.0"
+    "puppeteer": "^25.16.0"
   }
 }
